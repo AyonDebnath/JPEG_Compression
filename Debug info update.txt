@@ -1,0 +1,5 @@
+decoder.py only works for a specific image i.e. profile.jpg. It doesn't work for any other images.
+
+self.huffman_tables gives a key error in line 250. This is because profile.jpg has multiple huffman marker but other images such as porsche.jpeg has only one huffman marker (or maybe it has other huffman markers but the program is not reading those huffman markers for some reason.)
+
+decoder.py now works for all square images. However, the image must be converted to a 4:4:4 chromosubsample using: convert image.jpeg -sampling-factor 4:4:4 out.jpg
