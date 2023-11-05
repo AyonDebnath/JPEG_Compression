@@ -1,3 +1,4 @@
+import subprocess
 from struct import unpack
 import cv2
 from PIL import Image
@@ -13,6 +14,21 @@ marker_mapping = {
     0xFFD9: "End of Image",
 }
 
+
+def convertImageWithSamplingFactor(input_image, output_image, sampling_factor):
+    command = [
+        "convert",
+        input_image,
+        "-sampling-factor",
+        sampling_factor,
+        output_image
+    ]
+
+    try:
+        subprocess.run(command, check=True)
+        print("Image converted with sampling factor 4:4:4.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
 
 def PrintMatrix(m):
     """
@@ -360,15 +376,14 @@ class JPEG:
 if __name__ == "__main__":
     from tkinter import Tk, Canvas, mainloop
 
-    image_path = "out.jpg"
+    convertImageWithSamplingFactor("dog.jpeg", "out.jpeg", "4:4:4")
 
-    width, height = (Image.open(image_path)).size
+
+    width, height = (Image.open("out.jpeg")).size
 
     master = Tk()
     w = Canvas(master, width=width*2, height=height*2)
     w.pack()
-    # img = JPEG("porsche.jpg")
-    # img = JPEG("profile.jpg")
-    img = JPEG(image_path)
+    img = JPEG("out.jpeg")
     img.decode()
     mainloop()
