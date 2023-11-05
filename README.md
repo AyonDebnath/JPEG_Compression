@@ -1,4 +1,4 @@
-Modified version of Yasoob Khalid's code [Baseline-JPEG-Decoder] (https://github.com/yasoob/Baseline-JPEG-Decoder)
+Modified version of Yasoob Khalid's code [Baseline-JPEG-Decoder](https://github.com/yasoob/Baseline-JPEG-Decoder)
 
 # Baseline JPEG Decoder
 
