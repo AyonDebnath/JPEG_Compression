@@ -247,14 +247,6 @@ class JPEG:
         self.huffman_tables = {}
         self.quant = {}
         self.quantMapping = []
-
-        # # Convert to YCbCr color space
-        # rgb_image = cv2.imread(image_file)
-        # ycbcr_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2YCrCb)
-        # cv2.imwrite('ycbcr_image.jpg', ycbcr_image)
-        # with open('ycbcr_image.jpg', "rb") as f:
-        #     self.img_data = f.read()
-
         # Don't convert to YCbCr color space
         with open(image_file, "rb") as f:
             self.img_data = f.read()
@@ -376,14 +368,14 @@ class JPEG:
 if __name__ == "__main__":
     from tkinter import Tk, Canvas, mainloop
 
-    convertImageWithSamplingFactor("Images/dog.jpeg", "out.jpeg", "4:4:4")
+    convertImageWithSamplingFactor("Images/dog.jpeg", "Images/out.jpeg", "4:4:4")
 
 
-    width, height = (Image.open("out.jpeg")).size
+    width, height = (Image.open("Images/out.jpeg")).size
 
     master = Tk()
     w = Canvas(master, width=width*2, height=height*2)
     w.pack()
-    img = JPEG("out.jpeg")
+    img = JPEG("Images/out.jpeg")
     img.decode()
     mainloop()
