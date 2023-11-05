@@ -376,7 +376,7 @@ class JPEG:
 if __name__ == "__main__":
     from tkinter import Tk, Canvas, mainloop
 
-    convertImageWithSamplingFactor("dog.jpeg", "out.jpeg", "4:4:4")
+    convertImageWithSamplingFactor("Images/dog.jpeg", "out.jpeg", "4:4:4")
 
 
     width, height = (Image.open("out.jpeg")).size
