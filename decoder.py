@@ -1,4 +1,5 @@
 import subprocess
+from io import BytesIO
 from struct import unpack
 import cv2
 from PIL import Image
@@ -29,6 +30,7 @@ def convertImageWithSamplingFactor(input_image, output_image, sampling_factor):
         print("Image converted with sampling factor 4:4:4.")
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
+
 
 def PrintMatrix(m):
     """
@@ -61,7 +63,7 @@ def ColorConversion(Y, Cr, Cb):
     return (Clamp(R + 128), Clamp(G + 128), Clamp(B + 128))
 
 
-def DrawMatrix(x, y, matL, matCb, matCr):
+def DrawMatrix(x, y, matL, matCb, matCr, scaling_factor=1):
     """
     Loops over a single 8x8 MCU and draws it on Tkinter canvas
     """
@@ -70,9 +72,20 @@ def DrawMatrix(x, y, matL, matCb, matCr):
             c = "#%02x%02x%02x" % ColorConversion(
                 matL[yy][xx], matCb[yy][xx], matCr[yy][xx]
             )
-            x1, y1 = (x * 8 + xx) * 2, (y * 8 + yy) * 2
-            x2, y2 = (x * 8 + (xx + 1)) * 2, (y * 8 + (yy + 1)) * 2
+            x1, y1 = (x * 8 + xx) * scaling_factor, (y * 8 + yy) * scaling_factor
+            x2, y2 = (x * 8 + (xx + 1)) * scaling_factor, (y * 8 + (yy + 1)) * scaling_factor
             w.create_rectangle(x1, y1, x2, y2, fill=c, outline=c)
+
+
+def DrawCompressed(x, y, comp_image, scaling_factor=1):
+    comp_image = Image.open(BytesIO(comp_image))
+    for yy in range(8):
+        for xx in range(8):
+            c = "#%02x%02x%02x" % comp_image.getpixel((x, y))
+            x1, y1 = (x * 8 + xx) * scaling_factor, (y * 8 + yy) * scaling_factor
+            x2, y2 = (x * 8 + (xx + 1)) * scaling_factor, (y * 8 + (yy + 1)) * scaling_factor
+            w.create_rectangle(x1, y1, x2, y2, fill=c, outline=c)
+    return
 
 
 def RemoveFF00(data):
@@ -82,7 +95,7 @@ def RemoveFF00(data):
     datapro = []
     i = 0
     while True:
-        b, bnext = unpack("BB", data[i : i + 2])
+        b, bnext = unpack("BB", data[i: i + 2])
         if b == 0xFF:
             if bnext != 0:
                 break
@@ -159,9 +172,9 @@ class IDCT:
                 for u in range(self.idct_precision):
                     for v in range(self.idct_precision):
                         local_sum += (
-                            self.zigzag[v][u]
-                            * self.idct_table[u][x]
-                            * self.idct_table[v][y]
+                                self.zigzag[v][u]
+                                * self.idct_table[u][x]
+                                * self.idct_table[v][y]
                         )
                 out[y][x] = local_sum // 4
         self.base = out
@@ -247,14 +260,13 @@ class JPEG:
         self.huffman_tables = {}
         self.quant = {}
         self.quantMapping = []
-        # Don't convert to YCbCr color space
         with open(image_file, "rb") as f:
             self.img_data = f.read()
 
     def DefineQuantizationTables(self, data):
         while (len(data) > 0):
             (hdr,) = unpack("B", data[0:1])
-            self.quant[hdr] = GetArray("B", data[1 : 1 + 64], 64)
+            self.quant[hdr] = GetArray("B", data[1: 1 + 64], 64)
             data = data[65:]
 
     def BuildMatrix(self, st, idx, quant, olddccoeff):
@@ -296,6 +308,7 @@ class JPEG:
         oldlumdccoeff, oldCbdccoeff, oldCrdccoeff = 0, 0, 0
         for y in range(self.height // 8):
             for x in range(self.width // 8):
+
                 matL, oldlumdccoeff = self.BuildMatrix(
                     st, 0, self.quant[self.quantMapping[0]], oldlumdccoeff
                 )
@@ -305,7 +318,10 @@ class JPEG:
                 matCb, oldCbdccoeff = self.BuildMatrix(
                     st, 1, self.quant[self.quantMapping[2]], oldCbdccoeff
                 )
-                DrawMatrix(x, y, matL.base, matCb.base, matCr.base)
+                if (x == 0 and y == 0):
+                    # continue
+                    DrawCompressed(x, y, self.img_data, 2)
+                DrawMatrix(x, y, matL.base, matCb.base, matCr.base, 2)
 
         return lenchunk + hdrlen
 
@@ -314,22 +330,22 @@ class JPEG:
         # print("size %ix%i" % (self.width,  self.height))
 
         for i in range(components):
-            id, samp, QtbId = unpack("BBB", data[6 + i * 3 : 9 + i * 3])
+            id, samp, QtbId = unpack("BBB", data[6 + i * 3: 9 + i * 3])
             self.quantMapping.append(QtbId)
 
     def decodeHuffman(self, data):
         while (len(data) > 0):
             offset = 0
-            (header,) = unpack("B", data[offset : offset + 1])
+            (header,) = unpack("B", data[offset: offset + 1])
             # print(header, header & 0x0F, (header >> 4) & 0x0F)
             offset += 1
 
-            lengths = GetArray("B", data[offset : offset + 16], 16)
+            lengths = GetArray("B", data[offset: offset + 16], 16)
             offset += 16
 
             elements = []
             for i in lengths:
-                elements += GetArray("B", data[offset : offset + i], i)
+                elements += GetArray("B", data[offset: offset + i], i)
                 offset += i
 
             hf = HuffmanTable()
@@ -368,14 +384,16 @@ class JPEG:
 if __name__ == "__main__":
     from tkinter import Tk, Canvas, mainloop
 
-    convertImageWithSamplingFactor("Images/img.jpg", "Images/out.jpeg", "4:4:4")
+    input_image = "Images/butterfly.jpeg"
+    output_image = "Images/out.jpeg"
 
+    convertImageWithSamplingFactor(input_image, output_image, "4:4:4")
 
-    width, height = (Image.open("Images/out.jpeg")).size
+    width, height = Image.open(output_image).size
 
     master = Tk()
-    w = Canvas(master, width=width*2, height=height*2)
+    w = Canvas(master, width=width * 2, height=height * 2)
     w.pack()
-    img = JPEG("Images/out.jpeg")
+    img = JPEG(output_image)
     img.decode()
     mainloop()
