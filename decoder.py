@@ -2,8 +2,10 @@ import subprocess
 from io import BytesIO
 from struct import unpack
 import cv2
+import numpy as np
 from PIL import Image
 import math
+from skimage.metrics import structural_similarity as ssim
 
 marker_mapping = {
     0xFFD8: "Start of Image",
@@ -15,6 +17,19 @@ marker_mapping = {
     0xFFD9: "End of Image",
 }
 
+def calculate_ssim(image1, image2):
+    # Convert the images to grayscale
+    gray_image1 = image1.convert('L')
+    gray_image2 = image2.convert('L')
+
+    # Convert PIL images to numpy arrays
+    array1 = np.array(gray_image1)
+    array2 = np.array(gray_image2)
+
+    # Calculate SSIM
+    ssim_index, _ = ssim(array1, array2, full=True)
+
+    return ssim_index
 
 def convertImageWithSamplingFactor(input_image, output_image, sampling_factor):
     command = [
@@ -384,16 +399,16 @@ class JPEG:
 if __name__ == "__main__":
     from tkinter import Tk, Canvas, mainloop
 
-    input_image = "Images/butterfly.jpeg"
-    output_image = "Images/out.jpeg"
+    input_image = "Images/lena.bmp"
+    converted_image = "Images/converted_image.jpeg"
 
-    convertImageWithSamplingFactor(input_image, output_image, "4:4:4")
+    convertImageWithSamplingFactor(input_image, converted_image, "4:4:4")
 
-    width, height = Image.open(output_image).size
+    width, height = Image.open(converted_image).size
 
     master = Tk()
     w = Canvas(master, width=width * 2, height=height * 2)
     w.pack()
-    img = JPEG(output_image)
+    img = JPEG(converted_image)
     img.decode()
     mainloop()
