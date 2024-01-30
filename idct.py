@@ -19,13 +19,14 @@ class IDCT:
             [35, 36, 48, 49, 57, 58, 62, 63],
         ]
         self.idct_precision = 8
-        self.idct_table = [
-            [
-                (self.NormCoeff(u) * math.cos(((2.0 * x + 1.0) * u * math.pi) / 16.0))
-                for x in range(self.idct_precision)
-            ]
-            for u in range(self.idct_precision)
-        ]
+
+        self.idct_table = []
+        for u in range(self.idct_precision):
+            row = []
+            for x in range(self.idct_precision):
+                value = self.NormCoeff(u) * math.cos(((2.0 * x + 1.0) * u * math.pi) / 16.0)
+                row.append(value)
+            self.idct_table.append(row)
 
     def NormCoeff(self, n):
         if n == 0:
@@ -39,24 +40,19 @@ class IDCT:
                 self.zigzag[x][y] = self.base[self.zigzag[x][y]]
         return self.zigzag
 
-    # def perform_IDCT(self):
-    #     out = [list(range(8)) for i in range(8)]
-    #
-    #     for x in range(8):
-    #         for y in range(8):
-    #             local_sum = 0
-    #             for u in range(self.idct_precision):
-    #                 for v in range(self.idct_precision):
-    #                     local_sum += (
-    #                             self.zigzag[v][u]
-    #                             * self.idct_table[u][x]
-    #                             * self.idct_table[v][y]
-    #                     )
-    #             out[y][x] = local_sum // 4
     def perform_IDCT(self):
-        zigzag_matrix = np.array(self.zigzag)[:self.idct_precision, :self.idct_precision]
-        idct_matrix = np.array(self.idct_table)[:self.idct_precision, :self.idct_precision]
+        out = [list(range(8)) for i in range(8)]
 
-        out = np.dot(idct_matrix.T, np.dot(zigzag_matrix, idct_matrix)) // 4
+        for x in range(8):
+            for y in range(8):
+                local_sum = 0
+                for u in range(self.idct_precision):
+                    for v in range(self.idct_precision):
+                        local_sum += (
+                                self.zigzag[v][u]
+                                * self.idct_table[u][x]
+                                * self.idct_table[v][y]
+                        )
+                out[y][x] = local_sum // 4
 
-        self.base = out.tolist()
+        self.base = out

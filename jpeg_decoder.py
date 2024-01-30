@@ -12,11 +12,12 @@ class JPEG_decoder:
     JPEG class for decoding a baseline encoded JPEG image
     """
 
-    def __init__(self, image_file, canvas):
+    def __init__(self, image_file, output, scaling_factor):
         self.huffman_tables = {}
         self.quant = {}
         self.quantMapping = []
-        self.canvas = canvas
+        self.output = output
+        self.scaling_factor = scaling_factor
         with open(image_file, "rb") as f:
             self.img_data = f.read()
 
@@ -25,20 +26,6 @@ class JPEG_decoder:
             (hdr,) = unpack("B", data[0:1])
             self.quant[hdr] = main.GetArray("B", data[1: 1 + 64], 64)
             data = data[65:]
-
-    def break_into_8x8_blocks(self, lst):
-        # Ensure the length of the input list is a multiple of 8
-        assert len(lst) % 8 == 0, "Input list length must be a multiple of 8"
-
-        # Initialize an empty 2D list
-        result = []
-
-        # Iterate through the original list with steps of 8
-        for i in range(0, len(lst), 8):
-            # Take a slice of 8 elements and append it as a row in the 2D list
-            result.append(lst[i:i + 8])
-
-        return result
 
     def BuildMatrix(self, st, idx, quant, olddccoeff):
         i = IDCT.IDCT()
@@ -68,15 +55,9 @@ class JPEG_decoder:
                 l += 1
 
         i.rearrange_using_zigzag()
-
-        temp = np.round(idct(idct(self.break_into_8x8_blocks(i.base), axis=0), axis=1))
         i.perform_IDCT()
 
-
-
         return i, dccoeff
-
-
 
     def StartOfScan(self, data, hdrlen):
         data, lenchunk = main.RemoveFF00(data[hdrlen:])
@@ -97,8 +78,8 @@ class JPEG_decoder:
                 )
                 if (x == 0 and y == 0):
                     # continue
-                    main.DrawCompressed(self.canvas, x, y, self.img_data, 2)
-                main.DrawMatrix(self.canvas, x, y, matL.base, matCb.base, matCr.base, 2)
+                    main.DrawCompressed(x, y, self.img_data, self.output, self.scaling_factor)
+                main.DrawMatrix( x, y, matL.base, matCb.base, matCr.base, self.output, self.scaling_factor)
 
         return lenchunk + hdrlen
 

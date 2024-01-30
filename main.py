@@ -6,7 +6,9 @@ from skimage.metrics import structural_similarity as ssim
 
 from jpeg_decoder import *
 
+import cv2
 from tkinter import Tk, Canvas, mainloop
+
 
 marker_mapping = {
     0xFFD8: "Start of Image",
@@ -76,31 +78,35 @@ def ColorConversion(Y, Cr, Cb):
     R = Cr * (2 - 2 * 0.299) + Y
     B = Cb * (2 - 2 * 0.114) + Y
     G = (Y - 0.114 * B - 0.299 * R) / 0.587
-    return (Clamp(R + 128), Clamp(G + 128), Clamp(B + 128))
+    return (Clamp(B + 128), Clamp(G + 128), Clamp(R + 128))
 
 
-def DrawMatrix(canvas, x, y, matL, matCb, matCr, scaling_factor=1):
+def DrawMatrix(x, y, matL, matCb, matCr, output, scaling_factor ):
     """
     Loops over a single 8x8 MCU and draws it on Tkinter canvas
     """
+
     for yy in range(8):
         for xx in range(8):
-            c = "#%02x%02x%02x" % ColorConversion(
+            x1, y1 = (x * 8 + xx) * scaling_factor, (y * 8 + yy) * scaling_factor
+
+            # colour the entire block T\
+            for i in range(scaling_factor):
+                for j in range(scaling_factor):
+                    output[x1+i][y1+j] = ColorConversion(
                 matL[yy][xx], matCb[yy][xx], matCr[yy][xx]
             )
-            x1, y1 = (x * 8 + xx) * scaling_factor, (y * 8 + yy) * scaling_factor
-            x2, y2 = (x * 8 + (xx + 1)) * scaling_factor, (y * 8 + (yy + 1)) * scaling_factor
-            canvas.create_rectangle(x1, y1, x2, y2, fill=c, outline=c)
 
 
-def DrawCompressed(canvas, x, y, comp_image, scaling_factor=1):
+def DrawCompressed(x, y, comp_image, output, scaling_factor):
     comp_image = Image.open(BytesIO(comp_image))
     for yy in range(8):
         for xx in range(8):
-            c = "#%02x%02x%02x" % comp_image.getpixel((x, y))
             x1, y1 = (x * 8 + xx) * scaling_factor, (y * 8 + yy) * scaling_factor
-            x2, y2 = (x * 8 + (xx + 1)) * scaling_factor, (y * 8 + (yy + 1)) * scaling_factor
-            canvas.create_rectangle(x1, y1, x2, y2, fill=c, outline=c)
+
+            for i in range(scaling_factor):
+                for j in range(scaling_factor):
+                    output[x1+i][y1+j] = comp_image.getpixel((x, y))
     return
 
 
@@ -140,18 +146,47 @@ def DecodeNumber(code, bits):
     else:
         return bits - (2 * l - 1)
 
+def hex_to_rgb(hex_color):
+    # Convert hexadecimal color to RGB
+    if(type(hex_color) == str):
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:(i + 2)], 16) for i in (0, 2, 4))
+    else:
+        return (hex_color, hex_color, hex_color)
+
+
+
+def create_image(hex_colors, width, height):
+
+    # Fill the image with colors
+    for x in range(width):
+        for y in range(height):
+            hex_color = hex_colors[x][y]
+            rgb_color = hex_to_rgb(hex_color)
+            hex_colors[x][y] = rgb_color
+
+    return hex_colors
+
 if __name__ == "__main__":
 
-    input_image = "Images/lena.bmp"
-    temp_converted_image = "Images/converted_image.jpeg"
+    input_image_path = "Images/lena.bmp"
+    temp_converted_image_path = "Images/converted_image.jpeg"
 
-    convertImageWithSamplingFactor(input_image, temp_converted_image, "4:4:4")
+    scaling_factor = 2
 
-    width, height = Image.open(temp_converted_image).size
+    convertImageWithSamplingFactor(input_image_path, temp_converted_image_path, "4:4:4")
 
-    master = Tk()
-    w = Canvas(master, width=width * 2, height=height * 2)
-    w.pack()
-    img = JPEG_decoder(temp_converted_image, w)
+    width, height = Image.open(temp_converted_image_path).size
+
+    output = [[0 for _ in range(width*scaling_factor)] for _ in range(height*scaling_factor)]
+
+    img = JPEG_decoder(temp_converted_image_path, output, scaling_factor)
     img.decode()
-    mainloop()
+
+    # result_image = create_image(img.output, width*scaling_factor, height*scaling_factor)
+    result_image = img.output
+
+    # Display the image
+    cv2.imshow('Result Image', np.array(result_image).astype(np.uint8))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
