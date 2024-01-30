@@ -93,7 +93,7 @@ def DrawMatrix(x, y, matL, matCb, matCr, output, scaling_factor ):
             # colour the entire block T\
             for i in range(scaling_factor):
                 for j in range(scaling_factor):
-                    output[x1+i][y1+j] = ColorConversion(
+                    output[y1+i][x1+j] = ColorConversion(
                 matL[yy][xx], matCb[yy][xx], matCr[yy][xx]
             )
 
@@ -106,7 +106,7 @@ def DrawCompressed(x, y, comp_image, output, scaling_factor):
 
             for i in range(scaling_factor):
                 for j in range(scaling_factor):
-                    output[x1+i][y1+j] = comp_image.getpixel((x, y))
+                    output[y1+i][x1+j] = comp_image.getpixel((x, y))
     return
 
 
@@ -169,7 +169,7 @@ def create_image(hex_colors, width, height):
 
 if __name__ == "__main__":
 
-    input_image_path = "Images/lena.bmp"
+    input_image_path = "Images/profile.jpg"
     temp_converted_image_path = "Images/converted_image.jpeg"
 
     scaling_factor = 2
@@ -184,9 +184,8 @@ if __name__ == "__main__":
     img.decode()
 
     # result_image = create_image(img.output, width*scaling_factor, height*scaling_factor)
-    result_image = img.output
+    output = np.array(img.output).astype(np.uint8)
 
     # Display the image
-    cv2.imshow('Result Image', np.array(result_image).astype(np.uint8))
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow('Result Image', np.array(output).astype(np.uint8))
+    cv2.imwrite('images/'+ input_image_path.split('/')[-1].split('.')[0] + '_output.png', output)
