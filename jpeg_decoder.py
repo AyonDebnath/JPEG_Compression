@@ -3,21 +3,19 @@ import huffmanTable
 import main
 import idct as IDCT
 from stream import *
-from scipy.fftpack import idct
-import numpy as np
-
 
 class JPEG_decoder:
     """
     JPEG class for decoding a baseline encoded JPEG image
     """
 
-    def __init__(self, image_file, output, scaling_factor):
+    def __init__(self, image_file, output, scaling_factor, coordinate):
         self.huffman_tables = {}
         self.quant = {}
         self.quantMapping = []
         self.output = output
         self.scaling_factor = scaling_factor
+        self.coordinate = coordinate
         with open(image_file, "rb") as f:
             self.img_data = f.read()
 
@@ -76,11 +74,10 @@ class JPEG_decoder:
                 matCb, oldCbdccoeff = self.BuildMatrix(
                     st, 1, self.quant[self.quantMapping[2]], oldCbdccoeff
                 )
-                if (x == 0 and y == 0):
+                if(x == self.coordinate.getX() and y - self.coordinate.getY()):
                     # continue
                     main.DrawCompressed(x, y, self.img_data, self.output, self.scaling_factor)
-                main.DrawMatrix( x, y, matL.base, matCb.base, matCr.base, self.output, self.scaling_factor)
-
+                main.DrawMatrix(x, y, matL.base, matCb.base, matCr.base, self.output, self.scaling_factor)
         return lenchunk + hdrlen
 
     def BaselineDCT(self, data):

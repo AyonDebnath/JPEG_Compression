@@ -1,13 +1,10 @@
 import subprocess
 from io import BytesIO
-import numpy as np
 from PIL import Image
-from skimage.metrics import structural_similarity as ssim
-
 from jpeg_decoder import *
-
+import numpy as np
 import cv2
-from tkinter import Tk, Canvas, mainloop
+from Coordinate import *
 
 
 marker_mapping = {
@@ -19,20 +16,6 @@ marker_mapping = {
     0xFFDA: "Start of Scan",
     0xFFD9: "End of Image",
 }
-
-def calculate_ssim(image1, image2):
-    # Convert the images to grayscale
-    gray_image1 = image1.convert('L')
-    gray_image2 = image2.convert('L')
-
-    # Convert PIL images to numpy arrays
-    array1 = np.array(gray_image1)
-    array2 = np.array(gray_image2)
-
-    # Calculate SSIM
-    ssim_index, _ = ssim(array1, array2, full=True)
-
-    return ssim_index
 
 def convertImageWithSamplingFactor(input_image, output_image, sampling_factor):
     command = [
@@ -103,7 +86,6 @@ def DrawCompressed(x, y, comp_image, output, scaling_factor):
     for yy in range(8):
         for xx in range(8):
             x1, y1 = (x * 8 + xx) * scaling_factor, (y * 8 + yy) * scaling_factor
-
             for i in range(scaling_factor):
                 for j in range(scaling_factor):
                     output[y1+i][x1+j] = comp_image.getpixel((x, y))
@@ -169,23 +151,27 @@ def create_image(hex_colors, width, height):
 
 if __name__ == "__main__":
 
-    input_image_path = "Images/profile.jpg"
-    temp_converted_image_path = "Images/converted_image.jpeg"
+    input_image_path = input("Enter the input image file path: ")
+    converted_image_path = "converted_image.jpeg"
 
-    scaling_factor = 2
+    coordinate = input("Enter x and y coordinate of the block to compress separated by a space.")
+    coordinate = coordinate.split()
+    coordinate = Coordinate(int(coordinate[0]), int(coordinate[1]))
 
-    convertImageWithSamplingFactor(input_image_path, temp_converted_image_path, "4:4:4")
+    scaling_factor = 1
 
-    width, height = Image.open(temp_converted_image_path).size
+    convertImageWithSamplingFactor(input_image_path, converted_image_path, "4:4:4")
+
+    width, height = Image.open(converted_image_path).size
 
     output = [[0 for _ in range(width*scaling_factor)] for _ in range(height*scaling_factor)]
 
-    img = JPEG_decoder(temp_converted_image_path, output, scaling_factor)
+    img = JPEG_decoder(converted_image_path, output, scaling_factor, coordinate)
     img.decode()
 
-    # result_image = create_image(img.output, width*scaling_factor, height*scaling_factor)
     output = np.array(img.output).astype(np.uint8)
 
     # Display the image
     # cv2.imshow('Result Image', np.array(output).astype(np.uint8))
     cv2.imwrite('images/'+ input_image_path.split('/')[-1].split('.')[0] + '_output.png', output)
+    print("Output has been saved in the Images Directory.")
