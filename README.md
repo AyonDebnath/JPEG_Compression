@@ -1,3 +1,6 @@
+This repo is no longer maintained. All the workflow of this repo has been transferred to [lf-compression
+](https://github.com/AyonDebnath/lf-compression)
+
 # Honour's Project - Ayon 
 
  This project focuses on decoding baseline encoded images using Python. The code has been adapted from Yasoob Khalid's [Baseline-JPEG-Decoder](https://github.com/yasoob/Baseline-JPEG-Decoder).
